@@ -1,6 +1,5 @@
 import math
 import numpy as np
-import pandas as pd
 from main import show_tm, show_w
 
 
@@ -24,10 +23,8 @@ def cal_all_tm(arr):
     tm_list = []
     arr = arr.astype(int)
     for i in range(1, len(arr)):
-        # print(arr[i - 1], arr[i])
-        # print(gene[arr[i-1]: arr[i]])
-        tm = cal_tm(gene[arr[i - 1]: arr[i]])
-        tm_list.append(tm)
+        tm_t = cal_tm(gene[arr[i - 1]: arr[i]])
+        tm_list.append(tm_t)
 
     return np.std(tm_list), tm_list
 
@@ -150,7 +147,7 @@ def cal_first_tm2(tm_mean):
 
 def optimize_f1(index_list, tm_list):  # 全局迭代，从左到右
     # print(index_list, tm_list)
-    print(np.std(tm_list))
+    # print(np.std(tm_list))
     """
     全局迭代，
     :param index_list:上次得到最好的剪切位置
@@ -203,223 +200,14 @@ def optimize_f1(index_list, tm_list):  # 全局迭代，从左到右
             index_list[i] = tem_result[0, 0]
             index_list[i + 1] = tem_result[0, 1]
             best_std, tm_list = cal_all_tm(index_list)  # 本次迭代得到最好的std和tm_list
-            print(best_std)
+            # print(best_std)
 
         flag.append(best_std)
         show_w(index_list[1:], tm_list, "d")
         # print(best_std)
     return index_list, tm_list
 
-"""
-def over_lap(test_gene, index_t, tm_t):
-    # print(np.std(tm_t))
-    if index_t[0] > 10:
-        index_t = np.insert(index_t, 0, [0])  # 在数组开头添加0，方便计算
-    gene_list = []
-    for i in range(len(tm_t)):  # 将gene截取出来存放在一个二维list中
-        gene_list.append(
-            [test_gene[int(index_t[i]):int(index_t[i + 1])], index_t[i], index_t[i], index_t[i + 1], index_t[i + 1],
-             tm_t[i]])
 
-    over_size = 5
-    temp_avg_tm = [0, 1]
-    while temp_avg_tm[-1] != temp_avg_tm[-2]:  # 迭代，防止只是剪切那一段
-        # 不用对标准差影响最大的，只是找最大的
-        # avg = np.mean(tm_t)
-        # tem = abs(tm_t - avg)
-        # max_index = np.argmax(tem)  # 最大值的下标
-        max_index = int(np.argmax(tm_t))  # 需要截取的基因的下标
-        # print(max_index, tm_t[max_index])
-        tem_gene = gene_list[max_index][0]  # 需要更改的基因片段
-        if (gene_list[max_index][1] != gene_list[max_index][2]) | (
-                gene_list[max_index][3] != gene_list[max_index][4]):  # 说明这片段被处理了
-            v = [x[-1] for x in gene_list]
-            v = np.array(v)
-            ind = np.array(index_t)
-            ind = ind[1:]
-            show_w(ind, v, "end1")
-
-            min_ind = np.argmin(v)
-            print(min_ind, ind[min_ind], v[min_ind])
-            print(np.std(v))
-            print(v)
-            return 0
-        start = gene_list[max_index][2]
-        end = gene_list[max_index][3]
-        new_tm_list = tm_t.copy()  # 复制所有的片段的tm方便计算标准差
-        new_cut = []
-        tm_std = 0
-        for i in range(over_size):
-            for j in range(over_size):
-                gene_len = len(tem_gene)
-                new_tm = cal_tm(tem_gene[i:gene_len - j])  # 新片段的tm
-                # 顺便计算一下标准差
-                new_tm_list[max_index] = new_tm
-                tm_std = np.std(new_tm_list)
-                # print(new_tm, tm_std)
-                tt = [start + i, end - j, new_tm, tm_std]
-                new_cut.append(tt)
-        tem_list = np.array(new_cut)
-        tem_list = tem_list[np.lexsort(tem_list.T)]
-
-        gene_list[max_index][2] = int(tem_list[0, 0])
-        gene_list[max_index][3] = int(tem_list[0, 1])
-        gene_list[max_index][5] = tem_list[0, 2]
-        tm_t[max_index] = tem_list[0, 2]
-        temp_avg_tm.append(tm_std)  # 用于结束判断
-    print(gene_list)
-    # 将大的往下降
-
-
-def over_lap1(tem_index, tem_tm):
-    gene_list = []
-    for i in range(len(tem_tm)):  # 将gene截取出来存放在一个二维list中
-        gene_list.append(
-            [gene[int(tem_index[i]):int(tem_index[i + 1])], tem_index[i], tem_index[i], tem_index[i + 1],
-             tem_index[i + 1],
-             tem_tm[i]])
-
-    over_size = 5
-    temp_avg_tm = [0, 1]
-    while temp_avg_tm[-1] != temp_avg_tm[-2]:  # 迭代，防止只是剪切那一段
-        # 不用对标准差影响最大的，只是找最大的
-        # avg = np.mean(tm_t)
-        # tem = abs(tm_t - avg)
-        # max_index = np.argmax(tem)  # 最大值的下标
-        max_index = int(np.argmax(tem_tm))  # 需要截取的基因的下标
-        # print(max_index, tm_t[max_index])
-        tem_gene = gene_list[max_index][0]  # 需要更改的基因片段
-        if (gene_list[max_index][1] != gene_list[max_index][2]) | (
-                gene_list[max_index][3] != gene_list[max_index][4]):  # 说明这片段被处理了
-            v = [x[-1] for x in gene_list]
-            v = np.array(v)
-            ind = np.array(tem_index)
-            ind = ind[1:]
-            show_w(ind, v, "end1")
-
-            min_ind = np.argmin(v)
-            print(min_ind, ind[min_ind], v[min_ind])
-            print(np.std(v))
-            print(v)
-            return 0
-        start = gene_list[max_index][2]
-        end = gene_list[max_index][3]
-        new_tm_list = tem_tm.copy()  # 复制所有的片段的tm方便计算标准差
-        new_cut = []
-        tm_std = 0
-        for i in range(over_size):
-            for j in range(over_size):
-                gene_len = len(tem_gene)
-                new_tm = cal_tm(tem_gene[i:gene_len - j])  # 新片段的tm
-                # 顺便计算一下标准差
-                new_tm_list[max_index] = new_tm
-                tm_std = np.std(new_tm_list)
-                # print(new_tm, tm_std)
-                tt = [start + i, end - j, new_tm, tm_std]
-                new_cut.append(tt)
-        tem_list = np.array(new_cut)
-        tem_list = tem_list[np.lexsort(tem_list.T)]
-
-        gene_list[max_index][2] = int(tem_list[0, 0])
-        gene_list[max_index][3] = int(tem_list[0, 1])
-        gene_list[max_index][5] = tem_list[0, 2]
-        tem_tm[max_index] = tem_list[0, 2]
-        temp_avg_tm.append(tm_std)  # 用于结束判断
-    print(gene_list)
-    # 将大的往下降
-
-
-def over_lap2(index_list, tm_list):
-    gene_list = []
-    for i in range(len(tm_list)):  # 将gene截取出来存放在一个二维list中
-        # 【gene片段，原来第一个切割位点，修改后第一个切割位点，原来第二个切割位点，修改后第二个切割位点，修改后片段tm】
-        gene_list.append(
-            [gene[int(index_list[i]):int(index_list[i + 1])], index_list[i], index_list[i],
-             index_list[i + 1], index_list[i + 1],
-             tm_list[i]])
-
-    over_size = 5
-    temp_avg_tm = [0, 1]
-
-    tem_max_op = 10  # 相邻两个片段间隔最大值
-
-    tem_max_len = max_len  # 切割后每个片段长度范围
-    tem_min_len = min_len - 10
-    x = 0
-    while temp_avg_tm[-1] != temp_avg_tm[-2]:  # 迭代，终止条件
-
-        for i in range(len(gene_list)):
-            new_tm_list = tm_list.copy()
-            tem_result = []
-            for j in range(over_size):
-                for k in range(over_size):
-                    # TODO 判断越界
-                    # 取片段， 计算片段长度。 对于该片段，获取本次切割的左右位点
-                    tem_gene = gene_list[i][0]  # TODO 片段处理出错
-                    gene_len = len(tem_gene) - 1
-                    left = gene_list[i][2] - gene_list[i][1] + j
-                    right = gene_len - (gene_list[i][4] - gene_list[i][3]) - k
-                    # 越界判断
-
-                    # print(left, right)
-                    if right - left < tem_min_len:
-                        # print(left, right, right - left)
-                        continue
-                    if i > 0 and gene_list[i][2] + j - gene_list[i - 1][3] > tem_max_op:
-                        continue
-                    if i + 1 < len(gene_list) and gene_list[i + 1][2] - (gene_list[i][3] - k) > tem_max_op:
-                        continue
-                    sss = tem_gene[int(left): int(right)]
-                    tem_tm = cal_tm(sss)
-                    new_tm_list[i] = tem_tm
-                    tm_std = np.std(new_tm_list)
-                    tem_result.append([gene_list[i][2] + j, gene_list[i][3] - k, tem_tm, tm_std])
-            # if len(tem_result) == 0:
-            #     break
-            tem_list = choose(tem_result, 1)
-
-            gene_list[i][2] = int(tem_list[0, 0])
-            gene_list[i][3] = int(tem_list[0, 1])
-            gene_list[i][5] = tem_list[0, 2]
-            tm_list[i] = tem_list[0, 2]
-            temp_avg_tm.append(tem_list[0, 3])
-            # index_list[i] = int(tem_list[0, 0])
-            # index_list[i+1] = int(tem_list[0, 1])
-        x = x + 1
-        show_w(index_list[1:], tm_list, x)
-
-    a = np.argsort(tm_list)
-    print(a)
-
-    for i in range(len(a)):
-        if a[i] < 1 or a[i] + 2 > len(a):  # 先不管第一段和最后一段
-            continue
-        test_tm_list = tm_list.copy()
-        test_result = []
-        for j in range(int(gene_list[a[i]][2] - gene_list[a[i] - 1][3])):
-            print(gene_list[a[i] + 1][2], gene_list[a[i]][3], gene_list[a[i] + 1][2] - gene_list[a[i]][3])
-            for k in range(int(gene_list[a[i] + 1][2] - gene_list[a[i]][3])):
-                print(gene_list[a[i]][2], gene_list[a[i]][2] - j)
-                print(gene_list[a[i]][3], gene_list[a[i]][3] + k)
-
-                test_gene = gene[gene_list[a[i]][2] - j: gene_list[a[i]][3] + k]
-                test_tm = cal_tm(test_gene)
-                print(test_tm, gene_list[a[i]][5])
-                test_tm_list[a[i]] = test_tm
-                test_std = np.std(test_tm_list)
-                test_result.append([gene_list[a[i]][2] - j, gene_list[a[i]][3] + k, test_tm, test_std])
-
-        test_result = choose(test_result, 1)
-        gene_list[a[i]][2] = test_result[0, 0]
-        gene_list[a[i]][3] = test_result[0, 1]
-        gene_list[a[i]][5] = test_result[0, 2]
-        tm_list[a[i]] = test_result[0, 2]
-        show_w(index_list[1:], tm_list, "test")
-
-    for i in range(len(gene_list)):
-        print("原来+{0}，更改{1}".format(gene_list[i][4] - gene_list[i][1], gene_list[i][3] - gene_list[i][2]))
-
-"""
 def over_lap3(index_list, tm_list):
     index_list = index_list.astype(int)
     gene_list = []
@@ -468,7 +256,7 @@ def over_lap3(index_list, tm_list):
         show_w(index_list[1:], tm_list, x)
 
     a = np.argsort(tm_list)
-    print(a)
+    # print(a)
 
     # 经过剪切后，在迭代一次，进行扩展
     for i in range(len(a)):
@@ -477,15 +265,15 @@ def over_lap3(index_list, tm_list):
         test_tm_list = tm_list.copy()
         test_result = []
         for j in range(int(gene_list[a[i]][1] - gene_list[a[i] - 1][2])):
-            print(gene_list[a[i] + 1][1], gene_list[a[i]][2], gene_list[a[i] + 1][1] - gene_list[a[i]][2])
+            # print(gene_list[a[i] + 1][1], gene_list[a[i]][2], gene_list[a[i] + 1][1] - gene_list[a[i]][2])
             for k in range(int(gene_list[a[i] + 1][1] - gene_list[a[i]][2])):
 
-                print(gene_list[a[i]][1], gene_list[a[i]][1] - j)
-                print(gene_list[a[i]][2], gene_list[a[i]][2] + k)
+                # print(gene_list[a[i]][1], gene_list[a[i]][1] - j)
+                # print(gene_list[a[i]][2], gene_list[a[i]][2] + k)
 
                 test_gene = gene[gene_list[a[i]][1] - j: gene_list[a[i]][2] + k]
                 test_tm = cal_tm(test_gene)
-                print(test_tm, gene_list[a[i]][4])
+                # print(test_tm, gene_list[a[i]][4])
                 test_tm_list[a[i]] = test_tm
                 test_std = np.std(test_tm_list)
                 test_result.append([gene_list[a[i]][1] - j, gene_list[a[i]][2] + k, test_tm, test_std])
@@ -508,7 +296,7 @@ if __name__ == '__main__':
     gene = "CGTTTTAAAGGGCCCGCGCGTTGCCGCCCCCTCGGCCCGCCATGCTGCTATCCGTGCCGCTGCTGCTCGGCCTCCTCGGCCTGGCCGTCGCCGAGCCTGCCGTCTACTTCAAGGAGCAGTTTCTGGACGGAGACGGGTGGACTTCCCGCTGGATCGAATCCAAACACAAGTCAGATTTTGGCAAATTCGTTCTCAGTTCCGGCAAGTTCTACGGTGACGAGGAGAAAGATAAAGGTTTGCAGACAAGCCAGGATGCACGCTTTTATGCTCTGTCGGCCAGTTTCGAGCCTTTCAGCAACAAAGGCCAGACGCTGGTGGTGCAGTTCACGGTGAAACATGAGCAGAACATCGACTGTGGGGGCGGCTATGTGAAGCTGTTTCCTAATAGTTTGGACCAGACAGACATGCACGGAGACTCAGAATACAACATCATGTTTGGTCCCGACATCTGTGGCCCTGGCACCAAGAAGGTTCATGTCATCTTCAACTACAAGGGCAAGAACGTGCTGATCAACAAGGACATCCGTTGCAAGGATGATGAGTTTACACACCTGTACACACTGATTGTGCGGCCAGACAACACCTATGAGGTGAAGATTGACAACAGCCAGGTGGAGTCCGGCTCCTTGGAAGACGATTGGGACTTCCTGCCACC"
     gene = "GGCAGATGCGATCCAGCGGCTCTGGGGGCGGCAGCGGTGGTAGCAGCTGGTACCTCCCGCCGCCTCTGTTCGGAGGGTCGCGGGGCACCGAGGTGCTTTCCGGCCGCCCTCTGGTCGGCCACCCAAAGCCGCGGGCGCTGATGATGGGTGAGGAGGGGGCGGCAAGATTTCGGGCGCCCCTGCCCTGAACGCCCTCAGCTGCTGCCGCCGGGGCCGCTCCAGTGCCTGCGAACTCTGAGGAGCCGAGGCGCCGGTGAGAGCAAGGACGCTGCAAACTTGCGCAGCGCGGGGGCTGGGATTCACGCCCAGAAGTTCAGCAGGCAGACAGTCCGAAGCCTTCCCGCAGCGGAGAGATAGCTTGAGGGTGCGCAAGACGGCAGCCTCCGCCCTCGGTTCCCGCCCAGACCGGGCAGAAGAGCTTGGAGGAGCCAAAAGGAACGCAAAAGGCGGCCAGGACAGCGTGCAGCAGCTGGGAGCCGCCGTTCTCAGCCTTAAAAGTT"
     gene = "ATGAGATTTAGTTCAACGGATATGCAATACCAAAAGATGCTATTTGCTGCTATTCTATTTATTTGTGCATTAAGTTCGAAGAAGATCTCAATCTATAATGAAGAAATGATAGTAGCTGGTTGTTTTATAGGCTTTCTCATATTCAGTCGGAAGAGTTTAGGTAAGACTTTCCAAGCCACTCTCGACGGGAGAATCGAGTCTATTCAGGAAGAATCGCAGCAATTCTCCAATCCTAACGAAGTCCTTCCTCCGGAATCCAATGAACAACAACGATTACTTAGGATCAGCTTGCAAATTTGCGGCACCGTAGTAGAATCATTACCAACGGCACGCTGTGCGCCTAAGTGCGAAAAGACAGTGCAAGCTTTGTTATGCCGAAACCTAAATGTTAAGTCAGAAACACTTCTAAATGCCACTTCTTCCCGTCGCATCCGTCTTCAGGCCGATATAGTCACAGGGTTTAACTTTGGGGTGAGTGAAAGTGGGTGTACGTTGAAAACTTCTATCGTAGAACTAATTCGAGAGGGCTTGGTAGTCTTAAAAATAGCCTAA"
-    print(len(gene))
+    # print(len(gene))
     min_len, max_len = 15, 35
     res = cal_first_tm()
     count = 20  # 每一代取标准差最小的前count个
@@ -548,15 +336,9 @@ if __name__ == '__main__':
     tm = np.array(fir_ans[0][1::2])
     show_w(index, tm, "init1")
 
-    # print(index, tm)
-    print(np.std(tm))
+    # print(np.std(tm))
     """从answer中选取一个较好的作为下面迭代的开始"""
     # 对整体遍历
     index = np.insert(index, 0, [0])
     index, tm = optimize_f1(index, tm)
-    # print()
-    # for i in range(len(index) - 1):
-    #     print(index[i + 1] - index[i], end=' ')
-    # print()
-    #print(index)
     over_lap3(index, tm)
