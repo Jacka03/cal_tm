@@ -1,6 +1,17 @@
 import math
 import numpy as np
-from main import show_tm, show_w
+import matplotlib.pyplot as plt
+
+
+def show_w(x, y, head):
+    # print(len(x), len(y))
+    # tem = [for i in range(len(x))]
+    # plt.title("{0}, {1}".format(max(x), min()))
+    plt.scatter(x, y)
+    tem_str = "min:{:3f},max:{:3f},max-min={:3f},std={:4f}".format(min(y), max(y), max(y) - min(y), np.std(y))
+    plt.legend([tem_str])
+    plt.title(head)
+    plt.show()
 
 
 def get_gene(path):

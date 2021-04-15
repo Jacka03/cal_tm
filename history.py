@@ -1,7 +1,36 @@
 import math
 import numpy as np
-import pandas as pd
-from main import show_tm, show_w
+import matplotlib.pyplot as plt
+
+
+def show_tm(answer):
+    """
+    输出种情况的最大值和最小值
+    :param answer:
+    :return:
+    """
+    for i in range(len(answer)):
+        temp = np.array(answer[i])
+        x = temp[:-1:2]
+        y = temp[1:-1:2]
+        plt.scatter(x, y)
+        str = "min:{:4f},max:{:4f},max-min={:4f}".format(min(temp[1:-1:2]), max(temp[1:-1:2]),
+                                                         max(temp[1:-1:2]) - min(temp[1:-1:2]))
+        plt.legend([str])
+        str = "min-len:{},max-len:{}".format(min_len, max_len)
+        plt.title(str)
+        plt.show()
+
+
+def show_w(x, y, head):
+    # print(len(x), len(y))
+    # tem = [for i in range(len(x))]
+    # plt.title("{0}, {1}".format(max(x), min()))
+    plt.scatter(x, y)
+    tem_str = "min:{:3f},max:{:3f},max-min={:3f},std={:4f}".format(min(y), max(y), max(y) - min(y), np.std(y))
+    plt.legend([tem_str])
+    plt.title(head)
+    plt.show()
 
 
 def get_gene(path):
