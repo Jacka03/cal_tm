@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import pandas as pd
-from main import show_tm, show_w, cal_all_tm, find_top_k
+from main import show_tm, show_w
 
 
 def get_gene(path):
@@ -13,6 +13,23 @@ def get_gene(path):
     if data.islower():
         data = data.upper()
     return data
+
+
+def cal_all_tm(arr):
+    """
+    求这种切割位点的tm的标准差
+    :param arr: 切割位点
+    :return: np.std(tm_list)标准差， tm_list：每段的tm组成的list
+    """
+    tm_list = []
+    arr = arr.astype(int)
+    for i in range(1, len(arr)):
+        # print(arr[i - 1], arr[i])
+        # print(gene[arr[i-1]: arr[i]])
+        tm = cal_tm(gene[arr[i - 1]: arr[i]])
+        tm_list.append(tm)
+
+    return np.std(tm_list), tm_list
 
 
 def cal_tm(temp_gene):
@@ -132,6 +149,14 @@ def cal_first_tm2(tm_mean):
 
 
 def optimize_f1(index_list, tm_list):  # 全局迭代，从左到右
+    # print(index_list, tm_list)
+    print(np.std(tm_list))
+    """
+    全局迭代，
+    :param index_list:上次得到最好的剪切位置
+    :param tm_list:每个剪切片段的tm
+    :return:
+    """
     flag = [-1, -2, -3]  # 提前停止遍历的终止判断
     tem_max_len = max_len + 5
     tem_min_len = min_len - 5
@@ -145,38 +170,47 @@ def optimize_f1(index_list, tm_list):  # 全局迭代，从左到右
             for j in range(1 - bias_len, bias_len):  # 对于每个片段,
                 tem_left = left + j  # 左边新的切割位点
                 if tem_left < 0:
+                    # 当第一个位点小于0时，舍弃该情况
                     continue
                 # 左边移动后前一个片段的长度判断：
                 if i >= 1 and (
                         tem_left - index_list[i - 1] < tem_min_len or tem_left - index_list[i - 1] > tem_max_len):
+                    # 当左边位点移动导致左边片段过长或者过短时，舍弃该情况
                     continue
+
                 for k in range(1 - bias_len, bias_len):
                     tem_right = right + k  # 右边新的切割位点
-                    if tem_right >= len(gene):  # 右边界
+                    if tem_right >= len(gene):
+                        # 右边切割位点超越右边界
                         continue
                     # 右节点移动后下一个片段长度判断
                     if i + 1 < len(tm_list) and (
                             index_list[i + 2] - tem_right > tem_max_len or index_list[i + 2] - tem_right < tem_min_len):
+                        # 当右边位点移动导致右边片段过长或者过短时，舍弃该情况
                         continue
                     # 当前片段长度是否正确
                     if tem_min_len > (tem_right - tem_left) or (tem_right - tem_left) > tem_max_len:
+                        # 当前片段过长或者过短时
                         continue
+
                     tem_index_list = index_list.copy()
                     tem_index_list[i] = tem_left
                     tem_index_list[i + 1] = tem_right
-                    tem_std, _ = cal_all_tm(tem_index_list)
+                    tem_std, erere = cal_all_tm(tem_index_list)
                     tem_result.append([tem_left, tem_right, tem_std])
+                    # print(erere)
             tem_result = choose(tem_result, cou=1)
             index_list[i] = tem_result[0, 0]
             index_list[i + 1] = tem_result[0, 1]
             best_std, tm_list = cal_all_tm(index_list)  # 本次迭代得到最好的std和tm_list
+            print(best_std)
 
         flag.append(best_std)
         show_w(index_list[1:], tm_list, "d")
         # print(best_std)
     return index_list, tm_list
 
-
+"""
 def over_lap(test_gene, index_t, tm_t):
     # print(np.std(tm_t))
     if index_t[0] > 10:
@@ -385,7 +419,7 @@ def over_lap2(index_list, tm_list):
     for i in range(len(gene_list)):
         print("原来+{0}，更改{1}".format(gene_list[i][4] - gene_list[i][1], gene_list[i][3] - gene_list[i][2]))
 
-
+"""
 def over_lap3(index_list, tm_list):
     index_list = index_list.astype(int)
     gene_list = []
@@ -471,8 +505,8 @@ def over_lap3(index_list, tm_list):
 
 if __name__ == '__main__':
     gene = get_gene('test_gene.txt')
-    # gene = "CGTTTTAAAGGGCCCGCGCGTTGCCGCCCCCTCGGCCCGCCATGCTGCTATCCGTGCCGCTGCTGCTCGGCCTCCTCGGCCTGGCCGTCGCCGAGCCTGCCGTCTACTTCAAGGAGCAGTTTCTGGACGGAGACGGGTGGACTTCCCGCTGGATCGAATCCAAACACAAGTCAGATTTTGGCAAATTCGTTCTCAGTTCCGGCAAGTTCTACGGTGACGAGGAGAAAGATAAAGGTTTGCAGACAAGCCAGGATGCACGCTTTTATGCTCTGTCGGCCAGTTTCGAGCCTTTCAGCAACAAAGGCCAGACGCTGGTGGTGCAGTTCACGGTGAAACATGAGCAGAACATCGACTGTGGGGGCGGCTATGTGAAGCTGTTTCCTAATAGTTTGGACCAGACAGACATGCACGGAGACTCAGAATACAACATCATGTTTGGTCCCGACATCTGTGGCCCTGGCACCAAGAAGGTTCATGTCATCTTCAACTACAAGGGCAAGAACGTGCTGATCAACAAGGACATCCGTTGCAAGGATGATGAGTTTACACACCTGTACACACTGATTGTGCGGCCAGACAACACCTATGAGGTGAAGATTGACAACAGCCAGGTGGAGTCCGGCTCCTTGGAAGACGATTGGGACTTCCTGCCACC"
-    # gene = "GGCAGATGCGATCCAGCGGCTCTGGGGGCGGCAGCGGTGGTAGCAGCTGGTACCTCCCGCCGCCTCTGTTCGGAGGGTCGCGGGGCACCGAGGTGCTTTCCGGCCGCCCTCTGGTCGGCCACCCAAAGCCGCGGGCGCTGATGATGGGTGAGGAGGGGGCGGCAAGATTTCGGGCGCCCCTGCCCTGAACGCCCTCAGCTGCTGCCGCCGGGGCCGCTCCAGTGCCTGCGAACTCTGAGGAGCCGAGGCGCCGGTGAGAGCAAGGACGCTGCAAACTTGCGCAGCGCGGGGGCTGGGATTCACGCCCAGAAGTTCAGCAGGCAGACAGTCCGAAGCCTTCCCGCAGCGGAGAGATAGCTTGAGGGTGCGCAAGACGGCAGCCTCCGCCCTCGGTTCCCGCCCAGACCGGGCAGAAGAGCTTGGAGGAGCCAAAAGGAACGCAAAAGGCGGCCAGGACAGCGTGCAGCAGCTGGGAGCCGCCGTTCTCAGCCTTAAAAGTT"
+    gene = "CGTTTTAAAGGGCCCGCGCGTTGCCGCCCCCTCGGCCCGCCATGCTGCTATCCGTGCCGCTGCTGCTCGGCCTCCTCGGCCTGGCCGTCGCCGAGCCTGCCGTCTACTTCAAGGAGCAGTTTCTGGACGGAGACGGGTGGACTTCCCGCTGGATCGAATCCAAACACAAGTCAGATTTTGGCAAATTCGTTCTCAGTTCCGGCAAGTTCTACGGTGACGAGGAGAAAGATAAAGGTTTGCAGACAAGCCAGGATGCACGCTTTTATGCTCTGTCGGCCAGTTTCGAGCCTTTCAGCAACAAAGGCCAGACGCTGGTGGTGCAGTTCACGGTGAAACATGAGCAGAACATCGACTGTGGGGGCGGCTATGTGAAGCTGTTTCCTAATAGTTTGGACCAGACAGACATGCACGGAGACTCAGAATACAACATCATGTTTGGTCCCGACATCTGTGGCCCTGGCACCAAGAAGGTTCATGTCATCTTCAACTACAAGGGCAAGAACGTGCTGATCAACAAGGACATCCGTTGCAAGGATGATGAGTTTACACACCTGTACACACTGATTGTGCGGCCAGACAACACCTATGAGGTGAAGATTGACAACAGCCAGGTGGAGTCCGGCTCCTTGGAAGACGATTGGGACTTCCTGCCACC"
+    gene = "GGCAGATGCGATCCAGCGGCTCTGGGGGCGGCAGCGGTGGTAGCAGCTGGTACCTCCCGCCGCCTCTGTTCGGAGGGTCGCGGGGCACCGAGGTGCTTTCCGGCCGCCCTCTGGTCGGCCACCCAAAGCCGCGGGCGCTGATGATGGGTGAGGAGGGGGCGGCAAGATTTCGGGCGCCCCTGCCCTGAACGCCCTCAGCTGCTGCCGCCGGGGCCGCTCCAGTGCCTGCGAACTCTGAGGAGCCGAGGCGCCGGTGAGAGCAAGGACGCTGCAAACTTGCGCAGCGCGGGGGCTGGGATTCACGCCCAGAAGTTCAGCAGGCAGACAGTCCGAAGCCTTCCCGCAGCGGAGAGATAGCTTGAGGGTGCGCAAGACGGCAGCCTCCGCCCTCGGTTCCCGCCCAGACCGGGCAGAAGAGCTTGGAGGAGCCAAAAGGAACGCAAAAGGCGGCCAGGACAGCGTGCAGCAGCTGGGAGCCGCCGTTCTCAGCCTTAAAAGTT"
     gene = "ATGAGATTTAGTTCAACGGATATGCAATACCAAAAGATGCTATTTGCTGCTATTCTATTTATTTGTGCATTAAGTTCGAAGAAGATCTCAATCTATAATGAAGAAATGATAGTAGCTGGTTGTTTTATAGGCTTTCTCATATTCAGTCGGAAGAGTTTAGGTAAGACTTTCCAAGCCACTCTCGACGGGAGAATCGAGTCTATTCAGGAAGAATCGCAGCAATTCTCCAATCCTAACGAAGTCCTTCCTCCGGAATCCAATGAACAACAACGATTACTTAGGATCAGCTTGCAAATTTGCGGCACCGTAGTAGAATCATTACCAACGGCACGCTGTGCGCCTAAGTGCGAAAAGACAGTGCAAGCTTTGTTATGCCGAAACCTAAATGTTAAGTCAGAAACACTTCTAAATGCCACTTCTTCCCGTCGCATCCGTCTTCAGGCCGATATAGTCACAGGGTTTAACTTTGGGGTGAGTGAAAGTGGGTGTACGTTGAAAACTTCTATCGTAGAACTAATTCGAGAGGGCTTGGTAGTCTTAAAAATAGCCTAA"
     print(len(gene))
     min_len, max_len = 15, 35
@@ -512,9 +546,10 @@ if __name__ == '__main__':
             fir_ans = answer1
     index = np.array(fir_ans[0][:-1:2])
     tm = np.array(fir_ans[0][1::2])
-
     show_w(index, tm, "init1")
 
+    # print(index, tm)
+    print(np.std(tm))
     """从answer中选取一个较好的作为下面迭代的开始"""
     # 对整体遍历
     index = np.insert(index, 0, [0])
@@ -523,5 +558,5 @@ if __name__ == '__main__':
     # for i in range(len(index) - 1):
     #     print(index[i + 1] - index[i], end=' ')
     # print()
-
+    #print(index)
     over_lap3(index, tm)
