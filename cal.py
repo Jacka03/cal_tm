@@ -6,15 +6,14 @@ from cal_util import show_w, get_gene, cal_tm, choose
 def cal_all_tm(arr):
     """
     求这种切割位点的tm的标准差
-    :param arr: 切割位点
-    :return: np.std(tm_list)标准差， tm_list：每段的tm组成的list
+    :param arr: 整个基因片段的切割位点
+    :return: np.std(tm_list)：标准差， tm_list：每段的tm组成的list
     """
     tm_list = []
     arr = arr.astype(int)
     for i in range(1, len(arr)):
         tm_t = cal_tm(gene[arr[i - 1]: arr[i]])
         tm_list.append(tm_t)
-
     return np.std(tm_list), tm_list
 
 

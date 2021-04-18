@@ -18,3 +18,5 @@ over_lap过程最多截取多少，两个小片段之间最大是多少
 over_lap
 
 torch写一个神经网络，做个分类
+简单的神经网络、vggnet\restnet
+fasion_mnist
