@@ -4,12 +4,36 @@ from cal_util import show_w, get_gene, cal_tm, choose
 
 
 def start_at_middle():
-    start = int(len(gene)/2)
+    start = int(len(gene)*1/4)  # 选择切割开始位点
+    # print(start)
     g1 = gene[:start]
     g1 = g1[::-1]
     g2 = gene[start:]
+    index1, tm1 = cal_next_tm(g2)
+    second_start = tm1[0]
+    # second_start = float(np.mean(tm1))
+    index2, tm2 = cal_next_tm(g1, second_start)
 
-    return 0
+    index1 = start + index1
+    index1 = np.insert(index1, 0, start)
+    # print(index1)
+
+    index2 = start-index2
+    index2 = index2[::-1]
+
+    # print(index2)
+    tem_index = np.append(index2, index1)
+
+    # print(tem_index)
+    _, tem_tm = cal_all_tm(tem_index)
+    # print(len(tem_index), len(tem_tm))
+
+    if len(tem_tm) != len(tem_index):
+        show_w(tem_index[1:], tem_tm, "init")
+        return tem_index, tem_tm
+
+    show_w(tem_index, tem_tm, "init")
+    return np.insert(tem_index, 0, 0), tem_tm
 
 
 def cal_all_tm(arr):
@@ -26,7 +50,7 @@ def cal_all_tm(arr):
     return np.std(tm_list), tm_list
 
 
-def cal_first_tm():
+def cal_first_tm(gene):
     """
     计算第一段与第二段的tm值并且计算其标准差
     :return:
@@ -42,7 +66,7 @@ def cal_first_tm():
     return tem_res
 
 
-def cal_first_tm2(tm_mean):
+def cal_first_tm2(tm_mean, gene):
     tem_res = []
     for i in range(max_len - min_len):
         fir_tm = cal_tm(gene[0:min_len + i])
@@ -50,15 +74,15 @@ def cal_first_tm2(tm_mean):
     return tem_res
 
 
-def cal_next_tm(tm_mea=0.):
+def cal_next_tm(gene_test, tm_mea=0.):
     """
     计算第三段到最后的切割位点
     :return:
     """
     if tm_mea == 0.:
-        result = cal_first_tm()
+        result = cal_first_tm(gene_test)
     else:
-        result = cal_first_tm2(tm_mea)
+        result = cal_first_tm2(tm_mea, gene_test)
 
     result = choose(result, count)
     result = np.delete(result, -1, axis=1)  # 删除最后一列
@@ -66,15 +90,15 @@ def cal_next_tm(tm_mea=0.):
     fir_ans_tem = []  # 初步切割结果
     answer1_tem = []
     # 尝试控制answer不为0
-    while len(fir_ans_tem) == 0:
+    while len(fir_ans_tem) == 0 and len(answer1_tem) == 0:
         tem_res = []
         for i in range(len(result)):  # 遍历上一轮选择到的最优的
             fir_cut = int(result[i, -2])  # 这段gene开始
             for j in range(max_len - min_len):  #
                 sec_cut = fir_cut + min_len + j  # 这段gene结束
-                if sec_cut > len(gene) - 1:
-                    sec_cut = len(gene) - 1
-                tem_tm = cal_tm(gene[fir_cut: sec_cut])  # 计算这段gene的tm
+                if sec_cut > len(gene_test) - 1:
+                    sec_cut = len(gene_test) - 1
+                tem_tm = cal_tm(gene_test[fir_cut: sec_cut])  # 计算这段gene的tm
                 bef_tm = result[i, 1::2]  # 取出前面所有tm
                 bef_tm = np.append(bef_tm, tem_tm)  # 将这段gene的tm添加到之前中
                 tm_std = np.std(bef_tm)  # 计算标准差
@@ -83,10 +107,10 @@ def cal_next_tm(tm_mea=0.):
                 tem_gene_tm = [sec_cut, tem_tm, tm_std]
                 tem_list = bef_arr + tem_gene_tm
 
-                if fir_cut + min_len > len(gene) - 1:
+                if fir_cut + min_len > len(gene_test) - 1:
                     answer1_tem.append(tem_list)  # TODO最后一段是独立好还是分开好
                     break
-                elif sec_cut == len(gene) - 1:
+                elif sec_cut == len(gene_test) - 1:
                     fir_ans_tem.append(tem_list)
                     break
                 else:
@@ -96,11 +120,16 @@ def cal_next_tm(tm_mea=0.):
             tem_res = choose(tem_res, count)
             result = np.delete(tem_res, -1, axis=1)  # 删除最后一列
     # 挑选结果
-    fir_ans_tem = choose(fir_ans_tem)
-    if len(answer1_tem) > 0 and len(answer1_tem[0]) == len(answer1_tem[-1]):
-        answer1_tem = choose(answer1_tem)
-        if fir_ans_tem[0, -1] > answer1_tem[0, -1]:
-            fir_ans_tem = answer1_tem
+    # TODO 这里也可能出现每行长度不一样
+    if len(fir_ans_tem) > 0:
+        fir_ans_tem = choose(fir_ans_tem)
+
+        if len(answer1_tem) > 0 and len(answer1_tem[0]) == len(answer1_tem[-1]):
+            answer1_tem = choose(answer1_tem)
+            if fir_ans_tem[0, -1] > answer1_tem[0, -1]:
+                fir_ans_tem = answer1_tem
+    else:
+        fir_ans_tem = choose(answer1_tem)
     index111 = np.array(fir_ans_tem[0][:-1:2])
     tm111 = np.array(fir_ans_tem[0][1::2])
 
@@ -266,17 +295,16 @@ def gap(index_list):
 
 
 if __name__ == '__main__':
-    gene = get_gene('test_gene/test_gene.txt')
+    gene = get_gene('test_gene/test_gene3.txt')
+    print(len(gene))
     # gene = gene[::-1]
-    # start_at_middle()
     min_len, max_len = 15, 35
     count = 20  # 每一代取标准差最小的前count个
     # 初步贪心得到的结果
-    index, tm = cal_next_tm()
+    index, tm = start_at_middle()
     # 初步贪心得到的结果，将tm取均值，然后当做起点
-    index, tm = cal_next_tm(float(np.mean(tm)))
     # 对整体遍历
-    index = np.insert(index, 0, [0])
     index, tm = iteration(index, tm)
     cut_of_index = overlap(index, tm)
+    print(len(cut_of_index))
     res = gap(cut_of_index)

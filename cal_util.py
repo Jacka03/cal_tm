@@ -28,6 +28,7 @@ def show_w(x, y, head):
     tem_str = "min:{:3f},max:{:3f},max-min={:3f},std={:4f}".format(min(y), max(y), max(y) - min(y), np.std(y))
     plt.legend([tem_str])
     plt.title(head)
+    # plt.ylim(80, 90)
     plt.show()
 
 

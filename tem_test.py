@@ -257,16 +257,19 @@ def gap(index_list):
 
 
 if __name__ == '__main__':
-    gene = get_gene('test_gene/test_gene.txt')
-    print(len(gene))
+    gene = get_gene('test_gene/test_gene2.txt')
+    # print(len(gene))
     min_len, max_len = 15, 35
     count = 20  # 每一代取标准差最小的前count个
     # 初步贪心得到的结果
     index, tm = cal_next_tm()
+    show_w(index, tm, "f")
     # 初步贪心得到的结果，将tm取均值，然后当做起点
     index, tm = cal_next_tm(float(np.mean(tm)))
     # 对整体遍历
     index = np.insert(index, 0, [0])
+    # print(len(index), len(tm))
     index, tm = iteration(index, tm)
     cut_of_index = overlap(index, tm)
+    # print(len(cut_of_index))
     res = gap(cut_of_index)
