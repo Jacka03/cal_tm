@@ -25,59 +25,82 @@ def cal_first_tm():
     tem_res = []
     for i in range(max_len - min_len):
         mid_cut = min_len + i
-        fir_gene = gene[:mid_cut]  # 第一段基因
-        fir_tm = cal_tm(fir_gene)
+        fir_tm = cal_tm(gene[:mid_cut])
         for j in range(max_len - min_len):
             end_cut = mid_cut + min_len + j
-            sec_gene = gene[mid_cut:end_cut]  # 第二段基因
-            sec_tm = cal_tm(sec_gene)
+            sec_tm = cal_tm(gene[mid_cut:end_cut])
             tem_res.append([mid_cut, fir_tm, end_cut, sec_tm, np.std([fir_tm, sec_tm])])
-    return tem_res
-
-
-def cal_next_tm():
-    """
-    计算第三段到最后的切割位点
-    :return:
-    """
-    tem_res = []
-    for i in range(len(res)):  # 遍历上一轮选择到的最优的
-        fir_cut = int(res[i, -2])  # 这段gene开始
-
-        for j in range(max_len - min_len):  #
-            sec_cut = fir_cut + min_len + j  # 这段gene结束
-            if sec_cut > len(gene) - 1:
-                sec_cut = len(gene) - 1
-            tem_tm = cal_tm(gene[fir_cut: sec_cut])  # 计算这段gene的tm
-            bef_tm = res[i, 1::2]  # 取出前面所有tm
-            bef_tm = np.append(bef_tm, tem_tm)  # 将这段gene的tm添加到之前中
-            tm_std = np.std(bef_tm)  # 计算标准差
-            bef_arr = res[i, :]  # 获取数组，转化为列表
-            bef_arr = bef_arr.tolist()
-            tem_gene_tm = [sec_cut, tem_tm, tm_std]
-            tem_list = bef_arr + tem_gene_tm
-
-            if fir_cut + min_len > len(gene) - 1:
-                answer1.append(tem_list)  # TODO最后一段是独立好还是分开好
-                break
-            elif sec_cut == len(gene) - 1:
-                fir_ans.append(tem_list)
-                break
-            else:
-                tem_res.append(tem_list)
     return tem_res
 
 
 def cal_first_tm2(tm_mean):
     tem_res = []
     for i in range(max_len - min_len):
-        fir_gene = gene[0:min_len + i]
-        fir_tm = cal_tm(fir_gene)
+        fir_tm = cal_tm(gene[0:min_len + i])
         tem_res.append([min_len + i, fir_tm, np.std([tm_mean, fir_tm])])
     return tem_res
 
 
-def optimize_f1(index_list, tm_list):  # 全局迭代，从左到右
+def cal_next_tm(tm_mea=0.):
+    """
+    计算第三段到最后的切割位点
+    :return:
+    """
+    if tm_mea == 0.:
+        result = cal_first_tm()
+    else:
+        result = cal_first_tm2(tm_mea)
+
+    result = choose(result, count)
+    result = np.delete(result, -1, axis=1)  # 删除最后一列
+
+    fir_ans_tem = []  # 初步切割结果
+    answer1_tem = []
+    # 尝试控制answer不为0
+    while len(fir_ans_tem) == 0:
+        tem_res = []
+        for i in range(len(result)):  # 遍历上一轮选择到的最优的
+            fir_cut = int(result[i, -2])  # 这段gene开始
+            for j in range(max_len - min_len):  #
+                sec_cut = fir_cut + min_len + j  # 这段gene结束
+                if sec_cut > len(gene) - 1:
+                    sec_cut = len(gene) - 1
+                tem_tm = cal_tm(gene[fir_cut: sec_cut])  # 计算这段gene的tm
+                bef_tm = result[i, 1::2]  # 取出前面所有tm
+                bef_tm = np.append(bef_tm, tem_tm)  # 将这段gene的tm添加到之前中
+                tm_std = np.std(bef_tm)  # 计算标准差
+                bef_arr = result[i, :]  # 获取数组，转化为列表
+                bef_arr = bef_arr.tolist()
+                tem_gene_tm = [sec_cut, tem_tm, tm_std]
+                tem_list = bef_arr + tem_gene_tm
+
+                if fir_cut + min_len > len(gene) - 1:
+                    answer1_tem.append(tem_list)  # TODO最后一段是独立好还是分开好
+                    break
+                elif sec_cut == len(gene) - 1:
+                    fir_ans_tem.append(tem_list)
+                    break
+                else:
+                    tem_res.append(tem_list)
+        # 可能刚刚好处理完
+        if len(tem_res) != 0:
+            tem_res = choose(tem_res, count)
+            result = np.delete(tem_res, -1, axis=1)  # 删除最后一列
+    # 挑选结果
+    fir_ans_tem = choose(fir_ans_tem)
+    if len(answer1_tem) > 0 and len(answer1_tem[0]) == len(answer1_tem[-1]):
+        answer1_tem = choose(answer1_tem)
+        if fir_ans_tem[0, -1] > answer1_tem[0, -1]:
+            fir_ans_tem = answer1_tem
+    index111 = np.array(fir_ans_tem[0][:-1:2])
+    tm111 = np.array(fir_ans_tem[0][1::2])
+
+    show_w(index111, tm111, "greedy")
+
+    return index111, tm111
+
+
+def iteration(index_list, tm_list):  # 全局迭代，从左到右
     """
     全局迭代，
     :param index_list:上次得到最好的剪切位置
@@ -123,22 +146,22 @@ def optimize_f1(index_list, tm_list):  # 全局迭代，从左到右
                     tem_index_list = index_list.copy()
                     tem_index_list[i] = tem_left
                     tem_index_list[i + 1] = tem_right
-                    tem_std, erere = cal_all_tm(tem_index_list)
+                    tem_std, _ = cal_all_tm(tem_index_list)
                     tem_result.append([tem_left, tem_right, tem_std])
-                    # print(erere)
+
             tem_result = choose(tem_result, cou=1)
             index_list[i] = tem_result[0, 0]
             index_list[i + 1] = tem_result[0, 1]
             best_std, tm_list = cal_all_tm(index_list)  # 本次迭代得到最好的std和tm_list
-            # print(best_std)
 
         flag.append(best_std)
-        show_w(index_list[1:], tm_list, "d")
-        # print(best_std)
+        # show_w(index_list[1:], tm_list, "iteration")
+    show_w(index_list[1:], tm_list, "iteration")
+
     return index_list, tm_list
 
 
-def over_lap3(index_list, tm_list):
+def overlap(index_list, tm_list):
     index_list = index_list.astype(int)
     gene_list = []
     for i in range(len(tm_list)):  # 将gene截取出来存放在一个二维list中
@@ -183,7 +206,9 @@ def over_lap3(index_list, tm_list):
             tm_list[i] = tem_result[0, 2]
             temp_avg_tm.append(tem_result[0, 3])
         x = x + 1
-        show_w(index_list[1:], tm_list, x)
+        # show_w(index_list[1:], tm_list, x)
+
+    show_w(index_list[1:], tm_list, "overlap")
 
     a = np.argsort(tm_list)
 
@@ -212,61 +237,65 @@ def over_lap3(index_list, tm_list):
         gene_list[a[i]][2] = test_result[0, 1]
         gene_list[a[i]][4] = test_result[0, 2]
         tm_list[a[i]] = test_result[0, 2]
-    show_w(index_list[1:], tm_list, "test")
+    show_w(index_list[1:], tm_list, "end")
 
-    for i in range(len(gene_list)):
-        print("原来+{0}，更改{1}".format(gene_list[i][3] - gene_list[i][0], gene_list[i][2] - gene_list[i][1]))
+    # for i in range(len(gene_list)):
+    #     print("原来+{0}，更改{1}".format(gene_list[i][3] - gene_list[i][0], gene_list[i][2] - gene_list[i][1]))
+    print("每个间隙的长度:", end=" ")
+    for i in range(len(gene_list) - 1):
+        print(gene_list[i + 1][1] - gene_list[i][2], end=" ")
+    print()
+    return gene_list
+
+
+def gap(index_list):
+    res_index1 = []
+    res_index2 = []
+
+    dnaTable = {
+        "A": "T", "T": "A", "C": "G", "G": "C"
+    }
+
+    gene_complement = ""
+    for ele in gene:
+        gene_complement += dnaTable[ele]
+    coun = 0
+    for i in range(0, len(index_list), 2):
+        if i + 1 < len(index_list):
+            coun += 1
+            res_index1.append([index_list[i][1], index_list[i + 1][2]])
+            if i < 21:
+                # print(">Title of Sequence {0}".format(coun))
+                print(gene[int(index_list[i][1]):int(index_list[i + 1][2])])
+    print()
+    for i in range(1, len(index_list), 2):
+        if i + 1 < len(index_list):
+            coun += 1
+            res_index2.append([index_list[i][1], index_list[i + 1][2]])
+            if i < 22:
+                gene_tem = gene_complement[int(index_list[i][1]):int(index_list[i + 1][2])]
+                gene_tem = gene_tem[::-1]
+                # print(">Title of Sequence {0}".format(coun))
+                print(gene_tem)
+    print(coun)
+    return res_index1, res_index2
 
 
 if __name__ == '__main__':
     gene = get_gene('test_gene/test_gene1.txt')
-    # gene = gene[::-1]
-    # gene = "CGTTTTAAAGGGCCCGCGCGTTGCCGCCCCCTCGGCCCGCCATGCTGCTATCCGTGCCGCTGCTGCTCGGCCTCCTCGGCCTGGCCGTCGCCGAGCCTGCCGTCTACTTCAAGGAGCAGTTTCTGGACGGAGACGGGTGGACTTCCCGCTGGATCGAATCCAAACACAAGTCAGATTTTGGCAAATTCGTTCTCAGTTCCGGCAAGTTCTACGGTGACGAGGAGAAAGATAAAGGTTTGCAGACAAGCCAGGATGCACGCTTTTATGCTCTGTCGGCCAGTTTCGAGCCTTTCAGCAACAAAGGCCAGACGCTGGTGGTGCAGTTCACGGTGAAACATGAGCAGAACATCGACTGTGGGGGCGGCTATGTGAAGCTGTTTCCTAATAGTTTGGACCAGACAGACATGCACGGAGACTCAGAATACAACATCATGTTTGGTCCCGACATCTGTGGCCCTGGCACCAAGAAGGTTCATGTCATCTTCAACTACAAGGGCAAGAACGTGCTGATCAACAAGGACATCCGTTGCAAGGATGATGAGTTTACACACCTGTACACACTGATTGTGCGGCCAGACAACACCTATGAGGTGAAGATTGACAACAGCCAGGTGGAGTCCGGCTCCTTGGAAGACGATTGGGACTTCCTGCCACC"
-    # gene = "GGCAGATGCGATCCAGCGGCTCTGGGGGCGGCAGCGGTGGTAGCAGCTGGTACCTCCCGCCGCCTCTGTTCGGAGGGTCGCGGGGCACCGAGGTGCTTTCCGGCCGCCCTCTGGTCGGCCACCCAAAGCCGCGGGCGCTGATGATGGGTGAGGAGGGGGCGGCAAGATTTCGGGCGCCCCTGCCCTGAACGCCCTCAGCTGCTGCCGCCGGGGCCGCTCCAGTGCCTGCGAACTCTGAGGAGCCGAGGCGCCGGTGAGAGCAAGGACGCTGCAAACTTGCGCAGCGCGGGGGCTGGGATTCACGCCCAGAAGTTCAGCAGGCAGACAGTCCGAAGCCTTCCCGCAGCGGAGAGATAGCTTGAGGGTGCGCAAGACGGCAGCCTCCGCCCTCGGTTCCCGCCCAGACCGGGCAGAAGAGCTTGGAGGAGCCAAAAGGAACGCAAAAGGCGGCCAGGACAGCGTGCAGCAGCTGGGAGCCGCCGTTCTCAGCCTTAAAAGTT"
-    # gene = "ATGAGATTTAGTTCAACGGATATGCAATACCAAAAGATGCTATTTGCTGCTATTCTATTTATTTGTGCATTAAGTTCGAAGAAGATCTCAATCTATAATGAAGAAATGATAGTAGCTGGTTGTTTTATAGGCTTTCTCATATTCAGTCGGAAGAGTTTAGGTAAGACTTTCCAAGCCACTCTCGACGGGAGAATCGAGTCTATTCAGGAAGAATCGCAGCAATTCTCCAATCCTAACGAAGTCCTTCCTCCGGAATCCAATGAACAACAACGATTACTTAGGATCAGCTTGCAAATTTGCGGCACCGTAGTAGAATCATTACCAACGGCACGCTGTGCGCCTAAGTGCGAAAAGACAGTGCAAGCTTTGTTATGCCGAAACCTAAATGTTAAGTCAGAAACACTTCTAAATGCCACTTCTTCCCGTCGCATCCGTCTTCAGGCCGATATAGTCACAGGGTTTAACTTTGGGGTGAGTGAAAGTGGGTGTACGTTGAAAACTTCTATCGTAGAACTAATTCGAGAGGGCTTGGTAGTCTTAAAAATAGCCTAA"
-    # print(len(gene))
+    print("基因长度:{0}".format(len(gene)))
     min_len, max_len = 15, 35
-    res = cal_first_tm()
     count = 20  # 每一代取标准差最小的前count个
+    # 初步贪心得到的结果
 
-    fir_ans = []  # 初步切割结果
-    answer1 = []
-    # 尝试控制answer不为0
-    while len(fir_ans) == 0:
-        res = choose(res, count)
-        res = np.delete(res, -1, axis=1)  # 删除最后一列
-        res = cal_next_tm()
-    fir_ans = choose(fir_ans)
-    if len(answer1) > 0 and len(answer1[0]) == len(answer1[-1]):
-        answer1 = choose(answer1)
-        if fir_ans[0, -1] > answer1[0, -1]:
-            fir_ans = answer1
-    index = np.array(fir_ans[0][:-1:2])
-    tm = np.array(fir_ans[0][1::2])
-    show_w(index, tm, "init")
-
-    tm_init = np.mean(tm)  # 选择tm最小值作为贪心算法初始化值
-    res = cal_first_tm2(tm_init)
-    fir_ans = []
-    answer1 = []
-    # count = 5  # 每一代取标准差最小的前count个
-    while len(fir_ans) == 0:
-        res = choose(res, count)
-        res = np.delete(res, -1, axis=1)  # 删除最后一列
-        res = cal_next_tm()
-
-    fir_ans = choose(fir_ans)
-    if len(answer1) > 0 and len(answer1[0]) == len(answer1[-1]):
-        answer1 = choose(answer1)
-        if fir_ans[0, -1] > answer1[0, -1]:
-            fir_ans = answer1
-    index = np.array(fir_ans[0][:-1:2])
-    tm = np.array(fir_ans[0][1::2])
-    show_w(index, tm, "init1")
-
-    # print(np.std(tm))
-    """从answer中选取一个较好的作为下面迭代的开始"""
+    index, tm = cal_next_tm()
+    # show_w(index, tm, "f")
+    # 初步贪心得到的结果，将tm取均值，然后当做起点
+    index, tm = cal_next_tm(float(np.mean(tm)))
     # 对整体遍历
     index = np.insert(index, 0, [0])
-    index, tm = optimize_f1(index, tm)
-    over_lap3(index, tm)
+    # print(len(index), len(tm))
+    index, tm = iteration(index, tm)
+    cut_of_index = overlap(index, tm)
+    print("基因片段个数:{0}".format(len(cut_of_index)))
+    res = gap(cut_of_index)

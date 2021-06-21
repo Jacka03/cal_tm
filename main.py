@@ -4,14 +4,14 @@ from cal_util import show_w, get_gene, cal_tm, choose
 
 
 def start_at_middle():
-    start = int(len(gene)*1/4)  # 选择切割开始位点
+    start = int(len(gene)*3/4)  # 选择切割开始位点
     # print(start)
-    g1 = gene[:start]
-    g1 = g1[::-1]
     g2 = gene[start:]
     index1, tm1 = cal_next_tm(g2)
-    second_start = tm1[0]
     # second_start = float(np.mean(tm1))
+    second_start = tm1[0]
+    g1 = gene[:start]
+    g1 = g1[::-1]
     index2, tm2 = cal_next_tm(g1, second_start)
 
     index1 = start + index1
@@ -276,9 +276,10 @@ def overlap(index_list, tm_list):
 
     # for i in range(len(gene_list)):
     #     print("原来+{0}，更改{1}".format(gene_list[i][3] - gene_list[i][0], gene_list[i][2] - gene_list[i][1]))
-    print("len of gape")
+    print("每个间隙的长度:", end=" ")
     for i in range(len(gene_list) - 1):
-        print(gene_list[i+1][1] - gene_list[i][2])
+        print(gene_list[i+1][1] - gene_list[i][2], end=" ")
+    print()
     return gene_list
 
 
@@ -296,7 +297,7 @@ def gap(index_list):
 
 if __name__ == '__main__':
     gene = get_gene('test_gene/test_gene3.txt')
-    print(len(gene))
+    print("基因长度:{0}".format(len(gene)))
     # gene = gene[::-1]
     min_len, max_len = 15, 35
     count = 20  # 每一代取标准差最小的前count个
@@ -306,5 +307,5 @@ if __name__ == '__main__':
     # 对整体遍历
     index, tm = iteration(index, tm)
     cut_of_index = overlap(index, tm)
-    print(len(cut_of_index))
+    print("基因片段个数:{0}".format(len(cut_of_index)))
     res = gap(cut_of_index)

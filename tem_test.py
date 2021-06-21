@@ -238,30 +238,53 @@ def overlap(index_list, tm_list):
 
     # for i in range(len(gene_list)):
     #     print("原来+{0}，更改{1}".format(gene_list[i][3] - gene_list[i][0], gene_list[i][2] - gene_list[i][1]))
-    print("len of gape")
+    print("每个间隙的长度:", end=" ")
     for i in range(len(gene_list) - 1):
-        print(gene_list[i + 1][1] - gene_list[i][2])
+        print(gene_list[i+1][1] - gene_list[i][2], end=" ")
+    print()
     return gene_list
 
 
 def gap(index_list):
     res_index1 = []
     res_index2 = []
+
+    dnaTable = {
+        "A":"T", "T":"A", "C":"G", "G":"C"
+    }
+
+    gene_complement = ""
+    for ele in gene:
+        gene_complement += dnaTable[ele]
+    coun = 0
     for i in range(0, len(index_list), 2):
         if i + 1 < len(index_list):
+            coun += 1
             res_index1.append([index_list[i][1], index_list[i + 1][2]])
+            if i < 21:
+                # print(">Title of Sequence {0}".format(coun))
+                print(gene[int(index_list[i][1]):int(index_list[i + 1][2])])
+    print()
     for i in range(1, len(index_list), 2):
         if i + 1 < len(index_list):
+            coun += 1
             res_index2.append([index_list[i][1], index_list[i + 1][2]])
+            if i < 22:
+                gene_tem = gene_complement[int(index_list[i][1]):int(index_list[i + 1][2])]
+                gene_tem = gene_tem[::-1]
+                # print(">Title of Sequence {0}".format(coun))
+                print(gene_tem)
+    print(coun)
     return res_index1, res_index2
 
 
 if __name__ == '__main__':
-    gene = get_gene('test_gene/test_gene2.txt')
-    # print(len(gene))
+    gene = get_gene('test_gene/long1.txt')
+    print("基因长度:{0}".format(len(gene)))
     min_len, max_len = 15, 35
     count = 20  # 每一代取标准差最小的前count个
     # 初步贪心得到的结果
+
     index, tm = cal_next_tm()
     show_w(index, tm, "f")
     # 初步贪心得到的结果，将tm取均值，然后当做起点
@@ -270,6 +293,7 @@ if __name__ == '__main__':
     index = np.insert(index, 0, [0])
     # print(len(index), len(tm))
     index, tm = iteration(index, tm)
+
     cut_of_index = overlap(index, tm)
-    # print(len(cut_of_index))
+    print("基因片段个数:{0}".format(len(cut_of_index)))
     res = gap(cut_of_index)
