@@ -77,10 +77,16 @@ def cal_tm(temp_gene):
         elif (temp_gene[i:i + 2] == 'GG') | (temp_gene[i:i + 2] == 'CC'):
             GGCC += 1
 
-    H = AATT * (-7.9) + ATTA * (-7.2) + TAAT * (-7.2) + CAGT * (-8.5) + GTCA * (-8.4) + CTGA * (-7.8) + GACT * (
-        -8.2) + CGGC * (-10.6) + GCCG * (-9.8) + GGCC * (-8) + 0.1 + 2.3
-    S = AATT * (-22.2) + ATTA * (-20.4) + TAAT * (-21.3) + CAGT * (-22.7) + GTCA * (-22.4) + CTGA * (-21) + GACT * (
-        -22.2) + CGGC * (-27.2) + GCCG * (-24.4) + GGCC * (-19.9) - 2.8 + 4.1 - 1.4
+    # H = AATT * (-7.9) + ATTA * (-7.2) + TAAT * (-7.2) + CAGT * (-8.5) + GTCA * (-8.4) + CTGA * (-7.8) + GACT * (
+    #     -8.2) + CGGC * (-10.6) + GCCG * (-9.8) + GGCC * (-8) + 0.1 + 2.3
+    # S = AATT * (-22.2) + ATTA * (-20.4) + TAAT * (-21.3) + CAGT * (-22.7) + GTCA * (-22.4) + CTGA * (-21) + GACT * (
+    #     -22.2) + CGGC * (-27.2) + GCCG * (-24.4) + GGCC * (-19.9) - 2.8 + 4.1 - 1.4
+
+    H = AATT * (-7.6) + ATTA * (-7.2) + TAAT * (-7.2) + CAGT * (-8.5) + GTCA * (-8.4) + CTGA * (-7.8) + GACT * (
+        -8.2) + CGGC * (-10.6) + GCCG * (-9.8) + GGCC * (-8.0) + 0.2 + 2.2
+    S = AATT * (-21.3) + ATTA * (-20.4) + TAAT * (-21.3) + CAGT * (-22.7) + GTCA * (-22.4) + CTGA * (-21.0) + GACT * (
+        -22.2) + CGGC * (-27.2) + GCCG * (-24.4) + GGCC * (-19.9) - 5.7 + 6.9 - 1.4
+
 
     # TODO 钠离子浓度需要重新设置
     # 当Na+ 浓度不是1 mol / L 时，就需要对其校正，并且C_t / 4
@@ -90,6 +96,12 @@ def cal_tm(temp_gene):
     c_Tris = 1.0e-2  # mol / L#
     c_Na = 1e3  #
     c_t = 2e-3  # mmol / L#
+
+    c_dNTP = 8.0e-4  # 脱氧核糖核苷三磷酸
+    # c_Mg = c_Mg - c_dNTP
+
+    c_primer = 0  # 引物
+    c_oligo = 0 # 寡核苷酸
 
     kelvins = 273.15
 
@@ -139,3 +151,41 @@ def cal_tm(temp_gene):
     # return (H * 1000) / (S + 1.987 * math.log10((c_t ** -3) / 4)) - 273.15 + 16.6 * math.log10(1.)
 
     # return (H * 1000) / (S + 1.987 * math.log10((c_t ** -3) / 4)) - 273.15 + 16.6 * math.log10(1.)
+
+
+
+def cal_tm1(temp_gene):
+    """
+    计算一小段基因(temp_gene)的tm
+    :param temp_gene:
+    :return: 这段基因的tm
+    """
+    AATT = ATTA = TAAT = CAGT = GTCA = CTGA = GACT = CGGC = GCCG = GGCC = 0
+    for i in range(len(temp_gene) - 1):
+        if (temp_gene[i:i + 2] == 'AA') | (temp_gene[i:i + 2] == 'TT'):
+            AATT += 1
+        elif temp_gene[i:i + 2] == 'AT':
+            ATTA += 1
+        elif temp_gene[i:i + 2] == 'TA':
+            TAAT += 1
+        elif (temp_gene[i:i + 2] == 'CA') | (temp_gene[i:i + 2] == 'TG'):
+            CAGT += 1
+        elif (temp_gene[i:i + 2] == 'GT') | (temp_gene[i:i + 2] == 'AC'):
+            GTCA += 1
+        elif (temp_gene[i:i + 2] == 'CT') | (temp_gene[i:i + 2] == 'AG'):
+            CTGA += 1
+        elif (temp_gene[i:i + 2] == 'GA') | (temp_gene[i:i + 2] == 'TC'):
+            GACT += 1
+        elif temp_gene[i:i + 2] == 'CG':
+            CGGC += 1
+        elif temp_gene[i:i + 2] == 'GC':
+            GCCG += 1
+        elif (temp_gene[i:i + 2] == 'GG') | (temp_gene[i:i + 2] == 'CC'):
+            GGCC += 1
+
+    H = AATT * (-7.9) + ATTA * (-7.2) + TAAT * (-7.2) + CAGT * (-8.5) + GTCA * (-8.4) + CTGA * (-7.8) + GACT * (
+        -8.2) + CGGC * (-10.6) + GCCG * (-9.8) + GGCC * (-8) + 0.1 + 2.3
+    S = AATT * (-22.2) + ATTA * (-20.4) + TAAT * (-21.3) + CAGT * (-22.7) + GTCA * (-22.4) + CTGA * (-21) + GACT * (
+        -22.2) + CGGC * (-27.2) + GCCG * (-24.4) + GGCC * (-19.9) - 2.8 + 4.1 - 1.4
+    # TODO 钠离子浓度需要重新设置
+    return (H * 1000) / (S + 1.987 * math.log10((10 ** -4) / 4)) - 273.15 + 16.6 * math.log10(1.2)

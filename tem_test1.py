@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 from cal_util import show_w, get_gene, cal_tm, choose
 
@@ -237,7 +238,7 @@ def overlap(index_list, tm_list):
     #     print("原来+{0}，更改{1}".format(gene_list[i][3] - gene_list[i][0], gene_list[i][2] - gene_list[i][1]))
     print("每个间隙的长度:", end=" ")
     for i in range(len(gene_list) - 1):
-        print(gene_list[i+1][1] - gene_list[i][2], end=" ")
+        print(gene_list[i + 1][1] - gene_list[i][2], end=" ")
     print()
     return gene_list
 
@@ -248,36 +249,66 @@ def print_info(index_list):
     res_index2 = []
 
     dnaTable = {
-        "A":"T", "T":"A", "C":"G", "G":"C"
+        "A": "T", "T": "A", "C": "G", "G": "C"
     }
 
     gene_complement = ""
     for ele in gene:
         gene_complement += dnaTable[ele]
 
+    # print(gene)
+    # print(gene_complement)
     coun = 0
     for i in range(0, len(index_list), 2):
         if i + 1 < len(index_list):
             coun += 1
-            res_index1.append([index_list[i][1], index_list[i + 1][2]])
-            # if i < 21:
-            #     # print(">Title of Sequence {0}".format(coun))
-            #     print(gene[int(index_list[i][1]):int(index_list[i + 1][2])])
+            res_index1.append(gene[int(index_list[i][1]): int(index_list[i + 1][2])])
+
     if len(index_list) % 2 != 0:  # 最后一片
-        res_index1.append([index_list[-1][1], index_list[-1][2]])
+        coun += 1
+        res_index1.append(gene[int(index_list[-1][1]): int(index_list[-1][2])])
 
     # print()
+    gene_tem = gene_complement[int(index_list[0][1]):int(index_list[1][2])]
+    # print(gene_tem[::-1])
+    res_index2.append(gene_tem[::-1])
+
     for i in range(1, len(index_list), 2):
         if i + 1 < len(index_list):
             coun += 1
-            res_index2.append([index_list[i][1], index_list[i + 1][2]])
-            if i < 22:
-                gene_tem = gene_complement[int(index_list[i][1]):int(index_list[i + 1][2])]
-                gene_tem = gene_tem[::-1]  # 翻转5‘到3’
-                # print(">Title of Sequence {0}".format(coun))
-                print(gene_tem)
+            gene_tem = gene_complement[int(index_list[i][1]):int(index_list[i + 1][2])]
+            res_index2.append(gene_tem[::-1])
+
+    if len(index_list) % 2 == 0:  # 最后一片
+        coun += 1
+        gene_tem = gene_complement[int(index_list[-1][1]):int(index_list[-1][2])]
+        res_index2.append(gene_tem[::-1])
     print(coun)
     return res_index1, res_index2
+
+
+def cal_data(index1, index2):
+    num = 5
+    ten_list = []
+    for i in range(num):
+        for j in range(num):
+            if i == 0 and j == 0:
+                print(cal_tm(gene[index1+i: index2-j]))
+            ten_list.append(cal_tm(gene[index1+i: index2-j]))
+    return ten_list
+
+
+def get_data(tem_index):
+    tem_list = []
+    tem_index = [int(x) for x in tem_index]
+    for i in range(len(tem_index) - 1):
+        tem_list.append(cal_data(tem_index[i], tem_index[i+1]))
+    print(len(tem_list))
+    data = pd.DataFrame(tem_list)
+    data1 = data.T
+    outputpath = 'data.csv'
+    data1.to_csv(outputpath, sep=',', index=False, header=False, float_format='%.3f')
+    pass
 
 
 if __name__ == '__main__':
@@ -295,7 +326,11 @@ if __name__ == '__main__':
     index = np.insert(index, 0, [0])
     # print(len(index), len(tm))
     index, tm = iteration(index, tm)
-    
+
+    print(index)
+    get_data(index)
+
     cut_of_index = overlap(index, tm)
     print("基因片段个数:{0}".format(len(cut_of_index)))
-    res = print_info(cut_of_index)
+    res1, res2 = print_info(cut_of_index)
+    print(res1)
