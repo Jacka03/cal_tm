@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 from cal_util import show_w, get_gene, cal_tm, choose
 
@@ -17,7 +18,7 @@ def cal_all_tm(arr):
     return np.std(tm_list), tm_list
 
 
-def cal_first_tm():
+def cal_first_tm(mean_tm=0.):
     """
     计算第一段与第二段的tm值并且计算其标准差
     :return:
@@ -26,18 +27,14 @@ def cal_first_tm():
     for i in range(max_len - min_len):
         mid_cut = min_len + i
         fir_tm = cal_tm(gene[:mid_cut])
-        for j in range(max_len - min_len):
-            end_cut = mid_cut + min_len + j
-            sec_tm = cal_tm(gene[mid_cut:end_cut])
-            tem_res.append([mid_cut, fir_tm, end_cut, sec_tm, np.std([fir_tm, sec_tm])])
-    return tem_res
+        if mean_tm == 0.:
+            for j in range(max_len - min_len):
+                end_cut = mid_cut + min_len + j
+                sec_tm = cal_tm(gene[mid_cut:end_cut])
+                tem_res.append([mid_cut, fir_tm, end_cut, sec_tm, np.std([fir_tm, sec_tm])])
+        else:  # 使用经验值作为开始
+            tem_res.append([mid_cut, fir_tm, np.std([mean_tm, fir_tm])])
 
-
-def cal_first_tm2(tm_mean):
-    tem_res = []
-    for i in range(max_len - min_len):
-        fir_tm = cal_tm(gene[0:min_len + i])
-        tem_res.append([min_len + i, fir_tm, np.std([tm_mean, fir_tm])])
     return tem_res
 
 
@@ -46,10 +43,8 @@ def cal_next_tm(tm_mea=0.):
     计算第三段到最后的切割位点
     :return:
     """
-    if tm_mea == 0.:
-        result = cal_first_tm()
-    else:
-        result = cal_first_tm2(tm_mea)
+
+    result = cal_first_tm(tm_mea)
 
     result = choose(result, count)
     result = np.delete(result, -1, axis=1)  # 删除最后一列
@@ -248,7 +243,8 @@ def overlap(index_list, tm_list):
     return gene_list
 
 
-def gap(index_list):
+def print_info(index_list):
+    # 将每个片段返回
     res_index1 = []
     res_index2 = []
 
@@ -259,30 +255,64 @@ def gap(index_list):
     gene_complement = ""
     for ele in gene:
         gene_complement += dnaTable[ele]
+
+    # print(gene)
+    # print(gene_complement)
     coun = 0
     for i in range(0, len(index_list), 2):
         if i + 1 < len(index_list):
             coun += 1
-            res_index1.append([index_list[i][1], index_list[i + 1][2]])
-            if i < 21:
-                # print(">Title of Sequence {0}".format(coun))
-                print(gene[int(index_list[i][1]):int(index_list[i + 1][2])])
-    print()
+            res_index1.append(gene[int(index_list[i][1]): int(index_list[i + 1][2])])
+
+    if len(index_list) % 2 != 0:  # 最后一片
+        coun += 1
+        res_index1.append(gene[int(index_list[-1][1]): int(index_list[-1][2])])
+
+    # print()
+    gene_tem = gene_complement[int(index_list[0][1]):int(index_list[1][2])]
+    # print(gene_tem[::-1])
+    res_index2.append(gene_tem[::-1])
+
     for i in range(1, len(index_list), 2):
         if i + 1 < len(index_list):
             coun += 1
-            res_index2.append([index_list[i][1], index_list[i + 1][2]])
-            if i < 22:
-                gene_tem = gene_complement[int(index_list[i][1]):int(index_list[i + 1][2])]
-                gene_tem = gene_tem[::-1]
-                # print(">Title of Sequence {0}".format(coun))
-                print(gene_tem)
+            gene_tem = gene_complement[int(index_list[i][1]):int(index_list[i + 1][2])]
+            res_index2.append(gene_tem[::-1])
+
+    if len(index_list) % 2 == 0:  # 最后一片
+        coun += 1
+        gene_tem = gene_complement[int(index_list[-1][1]):int(index_list[-1][2])]
+        res_index2.append(gene_tem[::-1])
     print(coun)
     return res_index1, res_index2
 
 
+def cal_data(index1, index2):
+    num = 5
+    ten_list = []
+    for i in range(num):
+        for j in range(num):
+            if i == 0 and j == 0:
+                print(cal_tm(gene[index1+i: index2-j]))
+            ten_list.append(cal_tm(gene[index1+i: index2-j]))
+    return ten_list
+
+
+def get_data(tem_index):
+    tem_list = []
+    tem_index = [int(x) for x in tem_index]
+    for i in range(len(tem_index) - 1):
+        tem_list.append(cal_data(tem_index[i], tem_index[i+1]))
+    print(len(tem_list))
+    data = pd.DataFrame(tem_list)
+    data1 = data.T
+    outputpath = 'data.csv'
+    data1.to_csv(outputpath, sep=',', index=False, header=False, float_format='%.3f')
+    pass
+
+
 if __name__ == '__main__':
-    gene = get_gene('test_gene/test_gene1.txt')
+    gene = get_gene('test_gene/test_gene3.txt')
     print("基因长度:{0}".format(len(gene)))
     min_len, max_len = 15, 35
     count = 20  # 每一代取标准差最小的前count个
@@ -296,6 +326,11 @@ if __name__ == '__main__':
     index = np.insert(index, 0, [0])
     # print(len(index), len(tm))
     index, tm = iteration(index, tm)
+
+    print(index)
+    get_data(index)
+
     cut_of_index = overlap(index, tm)
     print("基因片段个数:{0}".format(len(cut_of_index)))
-    res = gap(cut_of_index)
+    res1, res2 = print_info(cut_of_index)
+    print(res1)
